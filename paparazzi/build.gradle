@@ -95,6 +95,29 @@ subprojects {
       ])
     }
   }
+
+  // Avoid the native projects in 'libs'
+  plugins.withId('org.jetbrains.kotlin.jvm') {
+    // Create a test task for each supported JDK.
+    [11, 12, 16, 18].each { majorVersion ->
+      def jdkTest = tasks.register("testJdk$majorVersion", Test) {
+        javaLauncher = javaToolchains.launcherFor {
+          languageVersion = JavaLanguageVersion.of(majorVersion)
+        }
+
+        description = "Runs the test suite on JDK $majorVersion"
+        group = LifecycleBasePlugin.VERIFICATION_GROUP
+
+        // Copy inputs from normal Test task.
+        def testTask = tasks.getByName("test")
+        classpath = testTask.classpath
+        testClassesDirs = testTask.testClassesDirs
+      }
+      tasks.named("check").configure {
+        dependsOn(jdkTest)
+      }
+    }
+  }
 }
 
 tasks.register("clean", Delete).configure {
